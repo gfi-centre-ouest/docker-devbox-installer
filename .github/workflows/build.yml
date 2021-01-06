@@ -68,3 +68,67 @@ jobs:
         with:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v2
+
+  release:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    needs: ci
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Git User config
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions"
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: dist-ubuntu-latest
+          path: build/ubuntu-latest
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: dist-windows-latest
+          path: build/windows-latest
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: dist-macos-latest
+          path: build/macos-latest
+
+      - name: Install python-semantic-release
+        run: pip install git+https://github.com/Toilal/python-semantic-release@master
+
+      - name: Move binaries to dist directory
+        run: |
+          ls -R build/
+          mkdir -p dist/
+          mv build/macos-latest/docker-devbox-installer ./dist/docker-devbox-installer-$(semantic-release print-version)-macos
+          mv build/ubuntu-latest/docker-devbox-installer ./dist/docker-devbox-installer-$(semantic-release print-version)-linux
+          mv build/windows-latest/docker-devbox-installer.exe ./dist/docker-devbox-installer-$(semantic-release print-version)-windows.exe
+
+      - name: Publish release
+        run: semantic-release -v DEBUG publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge main to develop
+        # uses: robotology/gh-action-nightly-merge@v1.3.1  # Wait PR merge https://github.com/robotology/gh-action-nightly-merge/pull/5
+        uses: Toilal/gh-action-nightly-merge@master
+        with:
+          stable_branch: 'main'
+          development_branch: 'develop'
+          allow_ff: true
+          user_name: github-actions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

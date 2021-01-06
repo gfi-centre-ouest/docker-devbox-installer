@@ -23,13 +23,10 @@ coverage = "^5.3.1"
 python-semantic-release = {git = "https://github.com/Toilal/python-semantic-release", rev = "master"}
 
 [tool.semantic_release]
-version_variable = [
-    "docker_devbox_installer/__version__.py:__version__"
-]
-version_toml = [
-    "pyproject.toml:tool.poetry.version"
-]
-build_command = "poetry build && pyinstaller --clean -y --dist ./dist docker-devbox-installer.spec"
+version_variable = "docker_devbox_installer/__version__.py:__version__"
+version_toml = "pyproject.toml:tool.poetry.version"
+branch = "main"
+build_command = false
 commit_subject = "chore(release): release v{version}"
 commit_author = "github-actions <actions@github.com>"
 upload_to_pypi = false
