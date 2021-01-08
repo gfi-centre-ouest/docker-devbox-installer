@@ -3,7 +3,7 @@ import shutil
 
 import stepbystep
 from docker_devbox_installer.utils.command_execution import CommandExecution
-from docker_devbox_installer.utils.windows_tools import is_admin
+from docker_devbox_installer.utils.run_as_admin import is_user_admin
 
 package_manager_step_model: stepbystep.StepModel = stepbystep.StepModel('package_manager')
 
@@ -33,8 +33,6 @@ class PackageManagerWindowsStep(stepbystep.Step):
 
     def prepare(self):
         self.context['is_installed'] = bool(shutil.which('chocolatey'))
-        if os.environ.get('INSTALLER_ADMIN_CHECK') != 'False' and not is_admin():  # Patch for pytest, TBR
-            raise NotAdminException('You need to run this software as administrator')
 
     def run(self):
         if self.context.get('is_installed'):
@@ -43,7 +41,7 @@ class PackageManagerWindowsStep(stepbystep.Step):
         print("[CHOCOLATEY] Installation")
 
         chocolatey_install_command = [
-            "$InstallDir='C:\ProgramData\chocoportable'",
+            "$InstallDir='C:\\ProgramData\\chocoportable'",
             '$env:ChocolateyInstall="$InstallDir"',
             "Set-ExecutionPolicy Bypass -Scope Process -Force",
             "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072",

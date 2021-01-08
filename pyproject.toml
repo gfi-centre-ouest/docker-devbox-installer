@@ -21,7 +21,6 @@ coveralls = "^2.2.0"
 coverage = "^5.3.1"
 python-semantic-release = {git = "https://github.com/Toilal/python-semantic-release", rev = "master"}
 pytest-watch = "^4.2.0"
-wheel = "^0.36.2"
 pytest-depends = "^1.0.1"
 
 [tool.semantic_release]
