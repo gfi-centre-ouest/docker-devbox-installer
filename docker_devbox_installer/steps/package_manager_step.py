@@ -1,17 +1,16 @@
 import os
 import shutil
-import subprocess
 
 import stepbystep
 from docker_devbox_installer.utils.command_execution import CommandExecution
 from docker_devbox_installer.utils.windows_tools import is_admin
 
-packet_manager_step_model: stepbystep.StepModel = stepbystep.StepModel('packet_manager')
+package_manager_step_model: stepbystep.StepModel = stepbystep.StepModel('package_manager')
 
 
-class PacketManagerInstallationException(Exception):
+class PackageManagerInstallationException(Exception):
     """
-    Raised if installation of packet manager return an error
+    Raised if installation of package manager return an error
     """
 
 
@@ -27,13 +26,13 @@ class PowershellException(Exception):
     """
 
 
-class PacketManagerWindowsStep(stepbystep.Step):
+class PackageManagerWindowsStep(stepbystep.Step):
     """
-    Install the packet manager
+    Install the package manager
     """
 
     def prepare(self):
-        self.context['is_installed'] = (shutil.which('chocolatey') is not None)
+        self.context['is_installed'] = bool(shutil.which('chocolatey'))
         if os.environ.get('INSTALLER_ADMIN_CHECK') != 'False' and not is_admin():  # Patch for pytest, TBR
             raise NotAdminException('You need to run this software as administrator')
 
@@ -44,6 +43,8 @@ class PacketManagerWindowsStep(stepbystep.Step):
         print("[CHOCOLATEY] Installation")
 
         chocolatey_install_command = [
+            "$InstallDir='C:\ProgramData\chocoportable'",
+            '$env:ChocolateyInstall="$InstallDir"',
             "Set-ExecutionPolicy Bypass -Scope Process -Force",
             "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072",
             "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"

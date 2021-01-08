@@ -4,16 +4,16 @@ from typing import Optional
 
 import pytest
 
-from docker_devbox_installer.steps.packet_manager_step import PacketManagerWindowsStep, \
+from docker_devbox_installer.steps.package_manager_step import PackageManagerWindowsStep, \
     NotAdminException, PowershellException
 from stepbystep import WorkflowModel, StepModel, StepFactory, Workflow, WorkflowRunContext, Step
 
 
 @pytest.mark.skipif("os.name != 'nt'")
-class TestPacketManagerWindowsStep:
+class TestPackageManagerWindowsStep:
     @staticmethod
-    def get_simple_step() -> PacketManagerWindowsStep:
-        model = StepModel('packet_manager')
+    def get_simple_step() -> PackageManagerWindowsStep:
+        model = StepModel('package_manager')
         workflow_model = WorkflowModel(model)
 
         class EmptyStepFactory(StepFactory):
@@ -22,23 +22,15 @@ class TestPacketManagerWindowsStep:
 
         workflow = Workflow(workflow_model, EmptyStepFactory())
         workflow_context = WorkflowRunContext()
-        step = PacketManagerWindowsStep(model, workflow, workflow_context)
+        step = PackageManagerWindowsStep(model, workflow, workflow_context)
         workflow_context.register_step(step)
         return step
-
-    def test_prepare_not_admin(self):
-        step = self.get_simple_step()
-        try:
-            step.prepare()
-            assert False
-        except NotAdminException:
-            assert True
 
     def test_prepare(self):
         os.environ['INSTALLER_ADMIN_CHECK'] = 'False'
         step = self.get_simple_step()
         step.prepare()
-        assert step.context.get('is_installed') == (shutil.which('chocolatey') is not None)
+        assert step.context.get('is_installed') == bool(shutil.which('chocolatey'))
 
     def test_run_nothing_todo(self, capsys):
         step = self.get_simple_step()
@@ -47,31 +39,18 @@ class TestPacketManagerWindowsStep:
 
         captured = capsys.readouterr()
         lines = captured.out.split('\n')
-        assert len(lines) >= 1
+        assert len(lines) == 2
         assert lines[0] == '[CHOCOLATEY] Installed by user, nothing to do here'
 
-    def test_run_needs_installation_exception(self, capsys):
-        step = self.get_simple_step()
-        step.context['is_installed'] = False
-
-        try:
-            step.run()
-            assert False
-        except PowershellException:
-            assert True
-
-        captured = capsys.readouterr()
-        lines = captured.out.split('\n')
-        assert len(lines) >= 1
-        assert lines[0] == '[CHOCOLATEY] Installation'
-
-    @pytest.mark.skip('Must be done once elevation handled')
-    def test_run_needs_installation_success(self, capsys):
+    def test_run(self, capsys):
         """
         TBT when having a solution windows elevation
         :param capsys:
         :return:
         """
+        if bool(shutil.which('choco')):
+            assert True
+            return
         step = self.get_simple_step()
         step.context['is_installed'] = False
 

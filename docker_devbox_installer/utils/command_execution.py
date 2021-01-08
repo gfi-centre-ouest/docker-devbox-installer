@@ -13,7 +13,7 @@ class CommandExecution:
     @staticmethod
     def execute(command: List[str], exception_class: Type = Exception, elevate: bool = False) -> AnyStr:
         # TODO Handle the elevate
-        if shutil.which(command[0]) is None:
+        if not shutil.which(command[0]):
             raise UnknownCommandException(f"Command {command[0]} not found")
 
         process = subprocess.Popen(command,
@@ -23,5 +23,4 @@ class CommandExecution:
         errors = process.stderr.read()
         if errors:
             raise exception_class(errors)
-
-        return process.stdout.read().decode("utf-8")
+        return process.stdout.read().decode('utf-8', errors='ignore')

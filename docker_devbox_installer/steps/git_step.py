@@ -20,15 +20,15 @@ class GitException(Exception):
 class GitInstallAndConfigureStep(stepbystep.Step):
 
     def prepare(self):
-        self.context['is_installed'] = (shutil.which('git') is not None)
-        self.context['user.name'] = self.get_user_name()
-        self.context['user.email'] = self.get_user_email()
+        self.context['is_installed'] = bool(shutil.which('git'))
+        self.context['user.name'] = self.get_config('user.name')
+        self.context['user.email'] = self.get_config('user.email')
 
     def prompt(self):
-        while self.context.get('user.name') is None or self.context.get('user.name') == '':
+        while not self.context.get('user.name') or self.context.get('user.name') == '':
             self.context['user.name'] = questionary.text("What GIT user.name you want to set?").ask()
 
-        while self.context.get('user.email') is None or self.context.get('user.email') == '':
+        while not self.context.get('user.email') or self.context.get('user.email') == '':
             self.context['user.email'] = questionary.text("What GIT user.email you want to set?").ask()
 
     def run(self):
@@ -41,10 +41,10 @@ class GitInstallAndConfigureStep(stepbystep.Step):
             print("[Git Install and Configure] Installed")
 
         print("[Git Install and Configure] Configuration")
-        if self.context.get('user.name') is not None and self.context.get('user.name') != '':
+        if self.context.get('user.name') and self.context.get('user.name') != '':
             self.update_config('user.name', self.context.get('user.name'))
 
-        if self.context.get('user.email') is not None and self.context.get('user.email') != '':
+        if self.context.get('user.email') and self.context.get('user.email') != '':
             self.update_config('user.email', self.context.get('user.email'))
 
         self.update_config('core.autocrlf', 'false')
@@ -52,20 +52,6 @@ class GitInstallAndConfigureStep(stepbystep.Step):
         self.update_config('core.eol', 'lf')
 
         print("[Git Install and Configure] Configured")
-
-    @staticmethod
-    def get_user_name() -> Optional[AnyStr]:
-        if not shutil.which('git'):
-            return None
-
-        return CommandExecution.execute(['git', 'config', '--global', 'user.name'], GitException)
-
-    @staticmethod
-    def get_user_email() -> Optional[AnyStr]:
-        if not shutil.which('git'):
-            return None
-
-        return CommandExecution.execute(['git', 'config', '--global', 'user.email'], GitException)
 
     @staticmethod
     def update_config(key: str, value: str, is_global: bool = True) -> Optional[AnyStr]:
@@ -76,7 +62,27 @@ class GitInstallAndConfigureStep(stepbystep.Step):
         :param is_global: add the --global flag in command
         :return:
         """
+        if not shutil.which('git'):
+            return None
+
         print(f"[Git Install and Configure] Setting {key} to {value}")
+
+        command = ['git', 'config']
+        if is_global:
+            command.append('--global')
+        command.append(key)
+        command.append(value)
+
+        return CommandExecution.execute(command, GitException)
+
+    @staticmethod
+    def get_config(key: str, is_global: bool = True) -> Optional[AnyStr]:
+        """
+        Get git configuration
+        :param key: the key to update
+        :param is_global: add the --global flag in command
+        :return:
+        """
         if not shutil.which('git'):
             return None
 
@@ -84,6 +90,5 @@ class GitInstallAndConfigureStep(stepbystep.Step):
         if is_global:
             command.append('--global')
         command.append(key)
-        command.append(value)
 
         return CommandExecution.execute(command, GitException)

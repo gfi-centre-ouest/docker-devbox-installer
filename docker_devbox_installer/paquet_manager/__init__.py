@@ -12,13 +12,13 @@ class OperatingSystemNotHandledException(Exception):
     """
 
 
-class PacketInstallationException(Exception):
+class PackageInstallationException(Exception):
     """
     Raised in case of choco error
     """
 
 
-class PacketUninstallationException(Exception):
+class PackageUninstallationException(Exception):
     """
     Raised in case of choco error
     """
@@ -26,7 +26,7 @@ class PacketUninstallationException(Exception):
 
 class AbstractPackageManager(ABC):
     """
-    Methods to be declare in packet manager
+    Methods to be declare in package manager
     """
     supported_os: List[str]
 
@@ -41,7 +41,7 @@ class AbstractPackageManager(ABC):
 
     @staticmethod
     @abstractmethod
-    def install(name: str):
+    def install(name: str, elevate: bool = False):
         """
         Install the Required Software
         :return:
@@ -49,7 +49,7 @@ class AbstractPackageManager(ABC):
 
     @staticmethod
     @abstractmethod
-    def uninstall(name: str):
+    def uninstall(name: str, elevate: bool = False):
         """
         Uninstall the Required Software
         :return:
@@ -63,14 +63,16 @@ class ChocoPackageManager(AbstractPackageManager):
     supported_os: List[str] = ['windows_nt']
 
     @staticmethod
-    def install(name: str) -> AnyStr:
+    def install(name: str, elevate: bool = False) -> AnyStr:
         return CommandExecution.execute(['choco', 'install', '--confirm', name],
-                                        exception_class=PacketInstallationException)
+                                        exception_class=PackageInstallationException,
+                                        elevate=elevate)
 
     @staticmethod
-    def uninstall(name: str) -> AnyStr:
+    def uninstall(name: str, elevate: bool = False) -> AnyStr:
         return CommandExecution.execute(['choco', 'uninstall', name],
-                                        exception_class=PacketUninstallationException)
+                                        exception_class=PackageUninstallationException,
+                                        elevate=elevate)
 
 
 class AptPackageManager(AbstractPackageManager):
@@ -80,19 +82,21 @@ class AptPackageManager(AbstractPackageManager):
     supported_os: List[str] = ["debian", "ubuntu"]
 
     @staticmethod
-    def install(name: str) -> AnyStr:
+    def install(name: str, elevate: bool = False) -> AnyStr:
         return CommandExecution.execute(['apt-get', 'install', '--no-install-recommends', '-y', name],
-                                        exception_class=PacketInstallationException)
+                                        exception_class=PackageInstallationException,
+                                        elevate=elevate)
 
     @staticmethod
-    def uninstall(name: str) -> AnyStr:
+    def uninstall(name: str, elevate: bool = False) -> AnyStr:
         return CommandExecution.execute(['apt-get', 'remove', '-y', '--purge', name],
-                                        exception_class=PacketUninstallationException)
+                                        exception_class=PackageUninstallationException,
+                                        elevate=elevate)
 
 
-def get_package_manager() -> Optional[Type[AbstractPackageManager]]:
+def get_package_manager() -> Type[AbstractPackageManager]:
     """
-    Get the appropriate packet manager
+    Get the appropriate package manager
     :return:
     """
     for manager in [ChocoPackageManager]:

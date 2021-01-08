@@ -1,0 +1,1 @@
+poetry run coverage run --source=docker_devbox_installer,stepbystep -m pytest && poetry run coverage html
