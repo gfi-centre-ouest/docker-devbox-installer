@@ -11,7 +11,6 @@ class UndefinedStepException(Exception):
     """
     An exception to raise in case of the factory return None
     """
-    pass
 
 
 class StepModel:
