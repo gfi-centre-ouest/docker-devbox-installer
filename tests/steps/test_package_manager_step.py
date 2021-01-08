@@ -4,15 +4,15 @@ from typing import Optional
 
 import pytest
 
-from docker_devbox_installer.steps.packet_manager_step import PacketManagerStepWindows, \
-    PacketManagerInstallationException, NotAdminException
+from docker_devbox_installer.steps.packet_manager_step import PacketManagerWindowsStep, \
+    NotAdminException, PowershellException
 from stepbystep import WorkflowModel, StepModel, StepFactory, Workflow, WorkflowRunContext, Step
 
 
 @pytest.mark.skipif("os.name != 'nt'")
-class TestPacketManagerStepWindows:
+class TestPacketManagerWindowsStep:
     @staticmethod
-    def get_simple_step() -> PacketManagerStepWindows:
+    def get_simple_step() -> PacketManagerWindowsStep:
         model = StepModel('packet_manager')
         workflow_model = WorkflowModel(model)
 
@@ -22,7 +22,7 @@ class TestPacketManagerStepWindows:
 
         workflow = Workflow(workflow_model, EmptyStepFactory())
         workflow_context = WorkflowRunContext()
-        step = PacketManagerStepWindows(model, workflow, workflow_context)
+        step = PacketManagerWindowsStep(model, workflow, workflow_context)
         workflow_context.register_step(step)
         return step
 
@@ -57,7 +57,7 @@ class TestPacketManagerStepWindows:
         try:
             step.run()
             assert False
-        except PacketManagerInstallationException:
+        except PowershellException:
             assert True
 
         captured = capsys.readouterr()
@@ -82,23 +82,3 @@ class TestPacketManagerStepWindows:
         assert len(lines) >= 2
         assert lines[0] == '[CHOCOLATEY] Installation'
         assert lines[1] == '[CHOCOLATEY] Installed'
-
-    def test_cleanup_user_installation(self, capsys):
-        step = self.get_simple_step()
-        step.context['is_installed'] = True
-        step.cleanup()
-
-        captured = capsys.readouterr()
-        lines = captured.out.split('\n')
-        assert len(lines) >= 1
-        assert lines[0] == '[CHOCOLATEY] Installed by user, nothing to do here'
-
-    def test_cleanup_success(self, capsys):
-        step = self.get_simple_step()
-        step.cleanup()
-
-        captured = capsys.readouterr()
-        lines = captured.out.split('\n')
-        assert len(lines) >= 2
-        assert lines[0] == '[CHOCOLATEY] Uninstallation'
-        assert lines[1] == '[CHOCOLATEY] Uninstalled'

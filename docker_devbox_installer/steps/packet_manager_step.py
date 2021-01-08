@@ -1,8 +1,9 @@
 import os
-import subprocess
 import shutil
+import subprocess
 
 import stepbystep
+from docker_devbox_installer.utils.command_execution import CommandExecution
 from docker_devbox_installer.utils.windows_tools import is_admin
 
 packet_manager_step_model: stepbystep.StepModel = stepbystep.StepModel('packet_manager')
@@ -20,7 +21,17 @@ class NotAdminException(Exception):
     """
 
 
-class PacketManagerStepWindows(stepbystep.Step):
+class PowershellException(Exception):
+    """
+    Raised in case of powershell error
+    """
+
+
+class PacketManagerWindowsStep(stepbystep.Step):
+    """
+    Install the packet manager
+    """
+
     def prepare(self):
         self.context['is_installed'] = (shutil.which('chocolatey') is not None)
         if os.environ.get('INSTALLER_ADMIN_CHECK') != 'False' and not is_admin():  # Patch for pytest, TBR
@@ -37,26 +48,10 @@ class PacketManagerStepWindows(stepbystep.Step):
             "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072",
             "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
         ]
-        output, errors = self._execute_powershell("; ".join(chocolatey_install_command))
-        if errors:
-            raise PacketManagerInstallationException(errors)
+        self._execute_powershell("; ".join(chocolatey_install_command))
 
         print("[CHOCOLATEY] Installed")
 
-    def cleanup(self):
-        if self.context.get('is_installed'):
-            print("[CHOCOLATEY] Installed by user, nothing to do here")
-            return
-        print("[CHOCOLATEY] Uninstallation")
-        # TODO Handle uninstall
-        print("[CHOCOLATEY] Uninstalled")
-
     @staticmethod
     def _execute_powershell(command: str):
-        # TODO Find a way to elevate access
-        process = subprocess.Popen(['powershell.exe', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        errors = process.stderr.read()
-        output = process.stdout.read()
-
-        return [output, errors]
+        return CommandExecution.execute(['powershell.exe', command], exception_class=PowershellException)
